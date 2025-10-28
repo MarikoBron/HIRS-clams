@@ -1,5 +1,83 @@
 ---
-title: "main-directory"
-format: html
+title: "Heron Island Research Station - Clam Orientation"
+subtitle: "Giant Clam Orientation in Relation to Proximity to a Strong Current"
+author: "Mariko Bronson"
+date: "26-10-2025"
+format:
+  html:
+  toc: true # use this to display a table of contents
+execute:
+  message: false # use this to make sure messages don't show up
+warning: false # use this to make sure warnings don't show up
 ---
 
+```{r packages-and-data}
+
+#installing packages
+
+library(tidyverse)
+library(here)
+library(janitor)
+library(flextable)
+library(readxl)
+library(ggplot2)
+library(colorspace)
+library(dplyr) 
+library(plotly) # JS plots!
+library(DT) # JS tables!
+library(leaflet) # JS maps!
+library(leaflet.extras) # leaflet add-ons!
+library(lme4)
+library(ggplot2)
+library(emmeans)
+library(performance)
+library(rstatix)
+library(viridis)
+library(plotly)
+library(measurements)
+
+raw_data <- read.csv("data/clam-orientation-3.csv", stringsAsFactors = FALSE)
+
+```
+
+```{r cleaning-data}
+
+clean_names(raw_data) |> 
+  mutate(site = as_factor(site),
+  ) 
+
+```
+
+```{r change-to-decimal}
+
+dms_to_dd <- function(dms) {
+  # Handle NAs or empty cells
+  if (is.na(dms) || dms == "" || grepl("N/A|n/a", dms, ignore.case = TRUE)) return(NA_real_)
+  
+  # Normalize quote characters
+  dms <- gsub("[‘’]", "'", dms)
+  dms <- gsub("[“”]", "\"", dms)
+  
+  # Extract components: degrees, minutes, seconds, direction
+  matches <- regmatches(dms, regexec("([0-9]+)[° ]+([0-9]+)[' ]+([0-9.]+)\"?\\s*([NSEW])", dms))
+  
+  if (length(matches[[1]]) < 5) return(NA_real_)  # no match found
+  
+  deg <- as.numeric(matches[[1]][2])
+  min <- as.numeric(matches[[1]][3])
+  sec <- as.numeric(matches[[1]][4])
+  dir <- matches[[1]][5]
+  
+  dd <- deg + (min / 60) + (sec / 3600)
+  if (dir %in% c("S", "W")) dd <- -dd
+  
+  return(dd)
+} 
+  
+  raw_data$latitude_dd  <- sapply(raw_data$latitude, dms_to_dd)
+raw_data$longitude_dd <- sapply(raw_data$longitude, dms_to_dd) 
+
+head(raw_data[, c("latitude", "latitude_dd", "longitude", "longitude_dd")])
+
+
+```
