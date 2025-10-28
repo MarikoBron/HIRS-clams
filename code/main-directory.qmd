@@ -79,5 +79,11 @@ raw_data$longitude_dd <- sapply(raw_data$longitude, dms_to_dd)
 
 head(raw_data[, c("latitude", "latitude_dd", "longitude", "longitude_dd")])
 
+```
+
+```{r new-table}
+
+clams <- raw_data |>select("site", "transect", "species", "straight_length_cm", "clam_orientation", "density", "latitude_dd", "longitude_dd")
 
 ```
+
