@@ -85,5 +85,44 @@ head(raw_data[, c("latitude", "latitude_dd", "longitude", "longitude_dd")])
 
 clams <- raw_data |>select("site", "transect", "species", "straight_length_cm", "clam_orientation", "density", "latitude_dd", "longitude_dd")
 
+    write.csv(clams, "clam.csv", row.names = FALSE)
+
+```
+
+```{r qq-plot}
+# base layer: ggplot call
+ggplot(data = clams, 
+       aes(sample = clam_orientation)) + 
+  geom_qq_line(color = "blue") + 
+  geom_qq() +
+  facet_wrap(~site) # show watersheds separately
+
+  
+```
+
+```{r boxplot}
+
+ggplot(data = clams,
+	aes(x = site,
+	 y = clam_orientation, # for histograms, don’t need yaxis
+	color = site)) + #what you color by
+
+ # first layer: boxplot
+  geom_boxplot() +
+  # second layer: jitter plot
+  geom_jitter(
+height = 0, # making sure points don't move along y-axis
+width = 0.2,#arrowing width of jitter
+alpha = 0.8, #
+size = 1) + # size of dots
+  
+  scale_color_brewer(palette = "Dark2", name = "Site") +
+  
+  labs( x = "Site",
+        y = "Clam Orientation (Degrees)") +
+  theme_minimal() 
+  
+ggplotly()
+
 ```
 
