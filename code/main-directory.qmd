@@ -35,8 +35,14 @@ library(rstatix)
 library(viridis)
 library(plotly)
 library(measurements)
+library(circular)#for degrees
+library(RColorBrewer)
 
 raw_data <- read.csv("data/clam-orientation-3.csv", stringsAsFactors = FALSE)
+
+blue_palette <- brewer.pal(9, "Blues")
+
+dark_palette <- blue_palette[4:9]
 
 ```
 
@@ -45,6 +51,7 @@ raw_data <- read.csv("data/clam-orientation-3.csv", stringsAsFactors = FALSE)
 clean_names(raw_data) |> 
   mutate(site = as_factor(site),
   ) 
+
 
 ```
 
@@ -83,9 +90,20 @@ head(raw_data[, c("latitude", "latitude_dd", "longitude", "longitude_dd")])
 
 ```{r new-table}
 
-clams <- raw_data |>select("site", "transect", "species", "straight_length_cm", "clam_orientation", "density", "latitude_dd", "longitude_dd")
+clams <- raw_data |>select("site", "transect", "species", "straight_length_cm", "clam_orientation", "density", "latitude_dd", "longitude_dd") |> 
+  mutate(
+    current_orientation = case_when(
+    site == "Shark Bay" ~ 78.57,
+    site == "Research Beach " ~ 106.5,
+    site == "Harbour" ~ 118.94
+  ),
+      clam_v_current = abs(clam_orientation - current_orientation),
+    # wrap around 180°
+    angle_diff = ifelse(clam_v_current > 180, 360 - clam_v_current, clam_v_current))
 
     write.csv(clams, "clam.csv", row.names = FALSE)
+    
+    clams$clam_orientation <- as.numeric(clams$clam_orientation)
 
 ```
 
@@ -100,7 +118,7 @@ ggplot(data = clams,
   
 ```
 
-```{r boxplot}
+```{r clam-orientation-boxplot}
 
 ggplot(data = clams,
 	aes(x = site,
@@ -110,19 +128,100 @@ ggplot(data = clams,
  # first layer: boxplot
   geom_boxplot() +
   # second layer: jitter plot
-  geom_jitter(
-height = 0, # making sure points don't move along y-axis
-width = 0.2,#arrowing width of jitter
-alpha = 0.8, #
-size = 1) + # size of dots
-  
-  scale_color_brewer(palette = "Dark2", name = "Site") +
+
+  scale_color_manual(values = dark_palette, name = "Site") +
   
   labs( x = "Site",
         y = "Clam Orientation (Degrees)") +
   theme_minimal() 
+
+```
+
+```{r clam-violin}
+
+clams |> 
+  ggplot( aes(x=site, y=clam_orientation, fill=site)) + #violin plot by site
+    geom_violin() +
+   geom_boxplot(width=0.1) +
+   scale_fill_manual(values = dark_palette) +
+    theme_minimal() +
+    theme(
+      legend.position="none"
+    ) +
+    labs(
+         x = "Site",
+         y = "Clam Orientation (Degrees)")
+
+```
+
+```{r dif-violin}
+
+ clams |> 
+  ggplot( aes(x=site, y=clam_v_current, fill=site)) + #violin plot by site
+    geom_violin() +
+   geom_boxplot(width=0.1)+
+   scale_fill_manual(values = dark_palette) +
   
-ggplotly()
+    theme_minimal() +
+    theme(
+      legend.position="none"
+    ) +
+    labs(
+         x = "Site",
+         y = "Difference Between Average Current \nDirection and Clam Orientation(Degrees)")
+
+```
+
+
+```{r clam-v-current-boxplot}
+
+ggplot(data = clams,
+	aes(x = site,
+	 y = clam_v_current, 
+	color = site)) + 
+  geom_boxplot() +
+  scale_color_manual(values = dark_palette, name = "Site") +
+  
+  labs( x = "Site",
+        y = "Angular Difference Between Clams and Current (Degrees)") +
+  theme_minimal() 
+
+```
+
+
+```{r variance}
+
+clam_var <- clams |> 
+  group_by(site) |> 
+  summarize(variance = var(clam_orientation))
+
+anova_clam <- aov(clam_orientation ~ site, data = clams)
+summary(anova)
+TukeyHSD(anova)
+
+clamvcurrent_var <- clams |> 
+  group_by(site) |> 
+  summarize(variance = var(clam_v_current)) 
+
+anova_clamvcurrent <- aov(clam_v_current ~ site, data = clams)
+summary(anova)
+TukeyHSD(anova)
+
+plot(anova, which = 2) 
+shapiro.test(residuals(anova))
+#p = 0.058
+
+bartlett.test(clam_v_current ~ site, data = clams)
+#p-value = 0.1839, >0.05 
+
+clam_summary <- clams |> 
+  group_by(site) |> 
+  summarise(
+    mean = mean(clam_v_current, na.rm = TRUE),
+    median = median(clam_v_current, na.rm = TRUE),
+    sd = sd(clam_v_current, na.rm = TRUE),
+    n = n())
+
 
 ```
 
