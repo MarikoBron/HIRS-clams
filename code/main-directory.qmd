@@ -195,17 +195,16 @@ clam_var <- clams |>
   group_by(site) |> 
   summarize(variance = var(clam_orientation))
 
-anova_clam <- aov(clam_orientation ~ site, data = clams)
-summary(anova)
-TukeyHSD(anova)
+summary(anova_clam <- aov(clam_orientation ~ site, data = clams))
+TukeyHSD(anova_clam <- aov(clam_orientation ~ site, data = clams))
 
 clamvcurrent_var <- clams |> 
   group_by(site) |> 
   summarize(variance = var(clam_v_current)) 
 
-anova_clamvcurrent <- aov(clam_v_current ~ site, data = clams)
-summary(anova)
-TukeyHSD(anova)
+bartlett.test(clam_orientation ~ site, data = clams)
+
+summary(anova_clamvcurrent <- aov(clam_v_current ~ site, data = clams))
 
 plot(anova, which = 2) 
 shapiro.test(residuals(anova))
@@ -222,6 +221,39 @@ clam_summary <- clams |>
     sd = sd(clam_v_current, na.rm = TRUE),
     n = n())
 
+
+```
+
+```{r age}
+
+clams <- clams |>
+  mutate(age = ifelse(straight_length_cm >= 15, "Older", "Younger"))
+
+clams$age_class <- NULL
+```
+
+```{r age-plot}
+
+ggplot(data = clams,
+	aes(x = site,
+	 y = clam_v_current, 
+	 fill = age)) + 
+  geom_boxplot() +
+  scale_color_manual(values = dark_palette, name = "Site") +
+  
+  labs( x = "Site",
+        y = "Angular Difference Between Clams and Current (Degrees)") +
+  theme_minimal() 
+
+```
+
+```{r age-analysis}
+
+clams |> 
+  group_by(age) |> 
+  summarize(variance = var(clam_orientation))
+
+summary(aov(clam_orientation ~ age, data = clams))
 
 ```
 
